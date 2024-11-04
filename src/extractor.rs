@@ -1,6 +1,6 @@
 use log;
 use core::panic;
-use std::{collections::HashMap, error, fmt, usize};
+use std::{error, fmt};
 use log::{info, warn, debug};
 use itertools::izip;
 
@@ -16,7 +16,7 @@ impl fmt::Display for ExtractorError {
 impl error::Error for ExtractorError {}
 
 const HIT_TIME_TOLERANCE:usize = 0;
-const TIME_SUM_UPPER: usize = 4000;
+pub const TIME_SUM_UPPER: usize = 4000;
 
 pub fn extractor(
     mcp_data: &Vec<usize>,
@@ -97,7 +97,7 @@ impl error::Error for ItemExceedsLastVal {}
 
 /// Returns the index 'i' such that data[i-1] <= item <= data[i].
 /// If value exceeds last value in vector, then returns length of vector
-fn binary_search_position <T: PartialOrd> (data: &Vec<T>, item: &T) -> usize {
+pub fn binary_search_position <T: PartialOrd> (data: &Vec<T>, item: &T) -> usize {
     let mut left    = 0;
     let mut right   = data.len() - 1;
     let mut mid     = 0;

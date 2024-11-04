@@ -1,9 +1,12 @@
 mod sieve;
 mod extractor;
+mod tsum_finder;
 use std::{collections::HashMap, env, error, thread};
+use histogram;
 
 use itertools::izip;
 use log::{debug, info, trace};
+use tsum_finder::timesum_extractor;
 
 fn main() -> Result<(), Box<dyn error::Error>>{
     env_logger::init();
@@ -29,6 +32,21 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         i+=1;
     });
 
+    // Gather TimeSum for each channel
+    info!("Calculating TimeSum for X channel...");
+    let x_timesum = tsum_finder::timesum_extractor(&data[0],
+                                                   &data[1],
+                                                   &data[2],
+                                                   500,)?;
+    info!("Calculated!");
+
+    let mut hist = histogram::Histogram::new(9, 64)?;
+    debug!("{:?}", hist.config());
+    for timesum in x_timesum.iter(){ hist.add(*timesum as u64, 1)?; }
+    debug!("{:?}", hist);
+    
+
+
     info!("Extracting indices from channels X1 and X2");
     let (x_reconstructed, x_mask) = extractor::extractor(&data[0],
                                                          &data[1],
@@ -39,8 +57,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     for (hit, mask) in izip!(x_reconstructed, x_mask){
         if mask { 
             trace!("{}", hit);
-            counter += 1; 
-        }
+            counter += 1; }
     }
     debug!("{}", counter);
     
