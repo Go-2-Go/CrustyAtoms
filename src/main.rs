@@ -38,15 +38,12 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                                                    &data[1],
                                                    &data[2],
                                                    500,)?;
-    info!("Calculated!");
+    info!("Calculated timesum for channel X1!");
 
     let mut hist = histogram::Histogram::new(9, 64)?;
     debug!("{:?}", hist.config());
     for timesum in x_timesum.iter(){ hist.add(*timesum as u64, 1)?; }
-    debug!("{:?}", hist);
     
-
-
     info!("Extracting indices from channels X1 and X2");
     let (x_reconstructed, x_mask) = extractor::extractor(&data[0],
                                                          &data[1],
@@ -56,7 +53,6 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     let mut counter: usize = 0;
     for (hit, mask) in izip!(x_reconstructed, x_mask){
         if mask { 
-            trace!("{}", hit);
             counter += 1; }
     }
     debug!("{}", counter);
