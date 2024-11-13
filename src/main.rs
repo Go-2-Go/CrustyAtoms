@@ -1,3 +1,4 @@
+mod plotter;
 mod sieve;
 mod extractor;
 mod tsum_finder;
@@ -25,12 +26,14 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     .join()
     .unwrap();
 
-    let data = sieve::sieve("test_files/121023_btrap_17.txt", 10_usize.pow(8));
+    let data = sieve::sieve("test_files/121023_btrap_17.txt", 10_usize.pow(8))?;
     let mut i = 0;
     data.iter().for_each(|x| {
         info!("Channel {} size {}", i, x.len());
         i+=1;
     });
+
+    let _ = plotter::hist_plotter(data[0].clone()).unwrap();
 
     // Gather TimeSum for each channel
     info!("Calculating TimeSum for X channel...");
@@ -40,10 +43,6 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                                                    500,)?;
     info!("Calculated timesum for channel X1!");
 
-    let mut hist = histogram::Histogram::new(9, 64)?;
-    debug!("{:?}", hist.config());
-    for timesum in x_timesum.iter(){ hist.add(*timesum as u64, 1)?; }
-    
     info!("Extracting indices from channels X1 and X2");
     let (x_reconstructed, x_mask) = extractor::extractor(&data[0],
                                                          &data[1],
@@ -71,6 +70,5 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                                                          4000,
                                                          1000)?;
     //println!("Channel {}, at time {}s", channel, (event_time * 25) as f32 * 10.0_f32.powf(-12.0));
-    
     Ok(())
 }

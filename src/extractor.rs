@@ -1,7 +1,7 @@
-use log;
+use log::{self, error};
 use core::panic;
 use std::{error, fmt};
-use log::{info, warn, debug};
+use log::{trace, info, warn, debug};
 use itertools::izip;
 
 #[derive(Debug, Clone)]
@@ -86,21 +86,12 @@ fn get_extracted_hits<'a>(start_indices: &Vec<usize>, end_indices: &Vec<usize>, 
     collected_hits
 }
 
-#[derive(Debug, Clone)]
-struct ItemExceedsLastVal;
-impl fmt::Display for ItemExceedsLastVal {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Item not found while searching.")
-    }
-}
-impl error::Error for ItemExceedsLastVal {}
-
 /// Returns the index 'i' such that data[i-1] <= item <= data[i].
 /// If value exceeds last value in vector, then returns length of vector
 pub fn binary_search_position <T: PartialOrd> (data: &Vec<T>, item: &T) -> usize {
     let mut left    = 0;
     let mut right   = data.len() - 1;
-    let mut mid     = 0;
+    let mut mid;
     if *item > data[right] { return right + 1 }
     if *item < data[left] { return 0 }
     let mut mid_val;

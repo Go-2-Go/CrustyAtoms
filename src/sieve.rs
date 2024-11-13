@@ -2,7 +2,9 @@ use core::panic;
 use std::{
     fs::File,
     io::{self, BufRead},
-    path::Path};
+    path::Path,
+    fmt,
+    error};
 use log::{info, warn};
 
 use itertools::Itertools;
@@ -10,9 +12,19 @@ use itertools::Itertools;
 const TRIGGER_CHANNEL: usize = 7;
 const NUMBER_OF_CHANNELS: usize = 7;
 
+#[derive(Debug, Clone)]
+struct TriggerError;
+impl fmt::Display for TriggerError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Error while getting trigger.")
+    }
+}
+impl error::Error for TriggerError {}
+
 pub fn sieve(
     filename: &str,
-    trigger_tolerance: usize) -> [Vec<usize>; NUMBER_OF_CHANNELS] 
+    trigger_tolerance: usize)
+    -> Result<[Vec<usize>; NUMBER_OF_CHANNELS], Box<dyn error::Error>>
 {
     const EMPTY_VEC: Vec<usize> = Vec::new();
     let mut data_collected: [Vec<usize>; NUMBER_OF_CHANNELS] = [EMPTY_VEC; NUMBER_OF_CHANNELS];
@@ -20,7 +32,7 @@ pub fn sieve(
     match read_lines(filename) {
         Ok(mut lines) => {
 
-            let trigger: usize = get_trigger(&mut lines);
+            let trigger: usize = get_trigger(&mut lines)?;
 
             // Skip remaining trigger events and other events which are not
             // within tolerance.
@@ -37,18 +49,18 @@ pub fn sieve(
 
             info!("Done reading");
         },
-        Err(_) => panic!("Not found file")
+        Err(err) => return Err(Box::new(err)),
     }
 
-    for channel in 0..7 { 
+    for channel in 0..NUMBER_OF_CHANNELS { 
         let sorted = is_sorted(&data_collected[channel]);
         if !sorted {
             warn!("Channel {channel} is not sorted, sorting ...");
             data_collected[channel].sort();
         } else { info!("Channel {channel} is sorted"); }
     }
-    data_collected
 
+    Ok(data_collected)
 }
 
 /// Checks if a vector is sorted.
@@ -78,7 +90,11 @@ fn skip_false_counts (lines: &mut io::Lines<io::BufReader<File>>, trigger: usize
     }
 }
 
-fn get_trigger (lines: &mut io::Lines<io::BufReader<File>>) -> usize {
+/// Extract trigger from Lines buffer. 
+/// Returns a result value with TriggerError in case
+/// of an issue while getting trigger.
+fn get_trigger (lines: &mut io::Lines<io::BufReader<File>>)
+                -> Result<usize, Box<dyn error::Error>> {
 
     // Get the trigger which is the first entry in data file
     let trigger_line = lines.next().unwrap().unwrap();
@@ -86,13 +102,14 @@ fn get_trigger (lines: &mut io::Lines<io::BufReader<File>>) -> usize {
 
     // Check if the first value is on trigger channel and set the trigger
     // Panics if first entry is not on trigger channel
-    if trigger_line[0].parse() == Ok(TRIGGER_CHANNEL) {
-        return trigger_line[1].parse().unwrap()
-    } else {
-        panic!("First val not trigger")
+    let trigger: usize;
+    match trigger_line[0].parse() {
+        Ok(TRIGGER_CHANNEL) => trigger = trigger_line[1].parse()?,
+        _ => return Err(Box::new(TriggerError)),
     };
+
+    return Ok(trigger);
 }
-//fn process_file(contents: Vec<u8>) -> &str
 
 /// The output is wrapped in a Result to allow matching on errors.
 /// Returns an Iterator to the Reader of the lines of the file.
